@@ -43,7 +43,7 @@ pipeline {
 
             post {
                 success {
-                    curl -s -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"chat_id\": \"1001898478582\", \"text\": \"App build success with Вадим Алексеев\", \"disable_notification\": true}" "https://api.telegram.org/bot5933756043:AAE8JLL5KIzgrNBeTP5e-1bkbJy4YRoeGjs/sendMessage"
+                    sh 'curl -s -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"chat_id\": \"1001898478582\", \"text\": \"App build success with Вадим Алексеев\", \"disable_notification\": true}" "https://api.telegram.org/bot5933756043:AAE8JLL5KIzgrNBeTP5e-1bkbJy4YRoeGjs/sendMessage"'
                 }
             }
         }
