@@ -1,0 +1,33 @@
+stages:
+  - build
+  - notify
+
+build-frontend:
+  stage: build  
+  only:
+    changes:
+    - frontend/*
+  script:        
+    - cd frontend
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/frontend
+
+telegram-notification-frontend:
+  stage: notify
+  variables:
+    ARTIFACT_URL: $CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_SHA/download?job=build-frontend-code
+    BODY_DATA: "{\"chat_id\": \"-1001898478582\", \"text\": \"App frontend was built successfully by Vadim Alekseev. PR  Artifact path ${ARTIFACT_URL}\", \"disable_notification\": true}"
+  only:
+    changes:
+    - frontend/*
+  script:
+    - 'echo $BODY_DATA'
+    - |
+      if [[ $CI_COMMIT_MESSAGE == *"send notification"* ]]; then
+        curl -s -X POST -H "Content-Type: application/json" -d "$BODY_DATA" "https://api.telegram.org/${BOT_TOKEN}/sendMessage"
+      fi
+  needs:
+    - build-frontend
