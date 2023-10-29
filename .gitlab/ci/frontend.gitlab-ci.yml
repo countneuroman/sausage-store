@@ -13,7 +13,7 @@ build-frontend:
   script:
     - cd frontend
     - npm install
-    - npm run build:prod
+    - npm run build
   artifacts:
     paths:
       - frontend/dist/frontend
