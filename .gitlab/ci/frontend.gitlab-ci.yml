@@ -1,12 +1,14 @@
 stages:
   - build
   - test
+  - release
   - notify
 include:
   - local: .gitlab/ci/templates/telegram-notification.yml
 
 variables:
   SEND_TELEGRAM_MESSAGE: "false"
+  VERSION: 0.0.${CI_PIPELINE_ID}
 
 build-frontend:
   stage: build
@@ -20,6 +22,20 @@ build-frontend:
   rules:  
     - changes:
           - frontend/**/*
+  
+upload-frontend-release:
+  stage: release
+  script:
+    - cd frontend/dist
+    - tar czvf sausage-store-${VERSION}.tar.gz frontend
+    - > 
+     curl -v -u "${NEXUS_REPO_USER}:${NEXUS_REPO_PASS}" 
+     --upload-file sausage-store-${VERSION}.tar.gz ${NEXUS_FRONTEND_REPO_URL}/${VERSION}/sausage-store-${VERSION}.tar.gz
+  rules:
+    - changes:
+        - frontend/**/*
+  needs:
+    - build-frontend
 
 sonarqube-frontend-sast:
   stage: test

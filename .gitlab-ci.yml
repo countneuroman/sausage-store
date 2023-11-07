@@ -30,5 +30,4 @@ frontend:
     changes:
       - frontend/**/*
   trigger:
-    include:
-      - local: '.gitlab/ci/frontend.gitlab-ci.yml'
+    include: '.gitlab/ci/frontend.gitlab-ci.yml'
