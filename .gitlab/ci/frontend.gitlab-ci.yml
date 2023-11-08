@@ -19,6 +19,9 @@ build-frontend:
   artifacts:
     paths:
       - frontend/dist/frontend
+  cache:
+    paths:
+      - .npm/
   rules:  
     - changes:
           - frontend/**/*
