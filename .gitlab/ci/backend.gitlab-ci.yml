@@ -1,7 +1,8 @@
 stages:
   - build
   - test
-  - release
+  - save
+  - deploy
   - notify
 include:
   - template: Security/SAST.gitlab-ci.yml
@@ -21,26 +22,13 @@ build-backend:
   artifacts:
     paths:
       - backend/target/sausage-store-${VERSION}.jar
+    expire_in: 3 days
   cache:
     paths:
       - .m2/
   rules:  
     - changes:
-        - backend/**/*
-        
-upload-backend-release:
-  stage: release
-  script:
-    - cd backend
-    - > 
-      mvn deploy -DskipTests 
-      -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository 
-      -s settings.xml -Dversion.application=${VERSION}
-  rules:
-    - changes:
-        - backend/**/*
-  needs:
-    - build-backend    
+        - backend/**/*   
 
 spotbugs-sast:
   stage: test
@@ -83,6 +71,57 @@ sonarqube-backend-sast:
         - backend/**/*
   needs:
     - build-backend
+    
+upload-backend-artifact:
+  stage: save
+  script:
+    - cd backend
+    - >
+      mvn deploy -DskipTests 
+      -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository 
+      -s settings.xml -Dversion.application=${VERSION}
+  only: # Артефакт сохраняем в Nexus только если ветка смержена с master
+    refs:
+      - master
+    changes:
+      - backend/**/*
+  needs:
+    - sonarqube-backend-sast
+    - spotbugs-sast
+
+deploy-backend:
+  stage: deploy
+  when: manual # запуск деплоя только вручную, через настройки protected branches можно разрешить запуск только пользователям с определенным уровнем прав
+  before_script:
+    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 600 ~/.ssh
+    - ssh-keyscan ${DEV_HOST} >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - |
+      ssh ${DEV_USER}@${DEV_HOST} \
+      "export "VERSION=${VERSION}"; \
+      export "NEXUS_BACKEND_REPO_URL=${NEXUS_BACKEND_REPO_URL}"; \
+      export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; \
+      export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; \
+      setsid /bin/bash -s " < ${CI_PROJECT_DIR}/.gitlab/deployScripts/backend_deploy.sh > output.log
+  only:
+    refs:
+      - master
+    changes:
+      - backend/**/*
+  artifacts:
+    paths:
+      - output.log
+    expire_in: 3 days
+  needs:
+    - upload-backend-artifact
+  environment:
+    name: backend/$CI_COMMIT_REF_SLUG
+    url: http://std-023-61.praktikum-services.tech/
 
 telegram-notification-backend:
   extends:
@@ -92,9 +131,10 @@ telegram-notification-backend:
     NOTIFICATION: $SEND_TELEGRAM_MESSAGE
     ARTIFACT_JOB_NAME: "build-backend"
     APP_NAME: "backend"
-  rules:  
-    - changes:
-        - backend/**/*
+  only:
+    refs:
+      - master
+    changes:
+      - backend/**/*
   needs:
-    - sonarqube-backend-sast
-    - spotbugs-sast
+    - deploy-backend
