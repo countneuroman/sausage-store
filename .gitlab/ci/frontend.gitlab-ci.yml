@@ -1,7 +1,8 @@
 stages:
   - build
   - test
-  - release
+  - save
+  - deploy
   - notify
 include:
   - local: .gitlab/ci/templates/telegram-notification.yml
@@ -25,20 +26,6 @@ build-frontend:
   rules:  
     - changes:
           - frontend/**/*
-  
-upload-frontend-release:
-  stage: release
-  script:
-    - cd frontend/dist
-    - tar czvf sausage-store-${VERSION}.tar.gz frontend
-    - > 
-     curl -v -u "${NEXUS_REPO_USER}:${NEXUS_REPO_PASS}" 
-     --upload-file sausage-store-${VERSION}.tar.gz ${NEXUS_FRONTEND_REPO_URL}/${VERSION}/sausage-store-${VERSION}.tar.gz
-  rules:
-    - changes:
-        - frontend/**/*
-  needs:
-    - build-frontend
 
 sonarqube-frontend-sast:
   stage: test
@@ -60,11 +47,60 @@ sonarqube-frontend-sast:
         -Dsonar.sources=. \
         -Dsonar.host.url=${SONARQUBE_URL} \
         -Dsonar.login=${SONAR_LOGIN_FRONT}
-  rules:  
+  rules:
     - changes:
-          - frontend/**/*
+        - frontend/**/*
+  artifacts:
+    paths:
+      - frontend/dist/frontend
   needs:
     - build-frontend
+
+upload-frontend-artifact:
+  stage: save
+  script:
+    - cd frontend/dist
+    - tar czvf sausage-store-${VERSION}.tar.gz frontend
+    - > 
+     curl -v -u "${NEXUS_REPO_USER}:${NEXUS_REPO_PASS}" 
+     --upload-file sausage-store-${VERSION}.tar.gz ${NEXUS_FRONTEND_REPO_URL}/${VERSION}/sausage-store-${VERSION}.tar.gz
+  only: # Артефакт сохраняем в Nexus только если ветка смержена с master
+    refs:
+      - master
+    changes:
+      - frontend/**/*
+  needs:
+    - sonarqube-frontend-sast
+  
+deploy-frontend:
+  stage: deploy
+  when: manual # запуск деплоя только вручную, через настройки protected branches можно разрешить запуск только пользователям с определенным уровнем прав
+  before_script:
+    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 600 ~/.ssh
+    - ssh-keyscan ${DEV_HOST} >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - |
+      ssh ${DEV_USER}@${DEV_HOST} \
+      "export "VERSION=${VERSION}"; \
+      export "NEXUS_FRONTEND_REPO_URL=${NEXUS_FRONTEND_REPO_URL}"; \
+      export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; \
+      export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; \
+      setsid /bin/bash -s " < ${CI_PROJECT_DIR}/.gitlab/deployScripts/frontend_deploy.sh > output.log
+  only:
+    refs:
+      - master
+    changes:
+      - frontend/**/*
+  needs:
+    - upload-frontend-artifact
+  environment:
+    name: frontend/$CI_COMMIT_REF_SLUG
+    url: http://std-023-61.praktikum-services.tech/
 
 telegram-notification-frontend:
   extends:
@@ -74,8 +110,10 @@ telegram-notification-frontend:
     NOTIFICATION: $SEND_TELEGRAM_MESSAGE
     ARTIFACT_JOB_NAME: "build-frontend"
     APP_NAME: "frontend"
-  rules:  
-    - changes:
-          - frontend/**/*
+  only:
+    refs:
+      - master
+    changes:
+      - frontend/**/*
   needs:
-    - sonarqube-frontend-sast
+    - deploy-frontend
