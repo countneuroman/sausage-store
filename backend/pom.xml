@@ -8,10 +8,9 @@
         <version>2.5.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    
     <groupId>com.yandex.practicum.devops</groupId>
     <artifactId>sausage-store</artifactId>
-    <version>${env.VERSION}</version>
+    <version>0.0.1-SNAPSHOT</version>
     <name>sausage-store</name>
     <description>Backend for sausage-store</description>
     <properties>
@@ -117,13 +116,5 @@
             </plugin>
         </plugins>
     </build>
-
-    <distributionManagement>
-        <repository>
-            <id>sausage-store</id>
-            <name>sausage-store</name>
-            <url>${env.NEXUS_BACKEND_REPO_URL}/sausage-store/</url>
-        </repository>
-    </distributionManagement>
 
 </project>
