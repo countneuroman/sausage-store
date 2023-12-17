@@ -16,6 +16,7 @@ build-backend:
   stage: build
   script:
     - cd backend
+    - export SPRING_FLYWAY_ENABLED=false
     - > 
      mvn package -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository 
      -Dversion.application=${VERSION}
@@ -61,6 +62,7 @@ sonarqube-backend-sast:
   script:
     - |
       cd backend
+      export SPRING_FLYWAY_ENABLED=false
       mvn verify sonar:sonar \
         -Dsonar.qualitygate.wait=true \
         -Dsonar.projectKey=${SONAR_PROJECTKEY_BACK} \
@@ -80,11 +82,9 @@ upload-backend-artifact:
       mvn deploy -DskipTests 
       -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository 
       -s settings.xml -Dversion.application=${VERSION}
-  only: # Артефакт сохраняем в Nexus только если ветка смержена с master
-    refs:
-      - master
-    changes:
-      - backend/**/*
+  rules:
+    - changes:
+        - backend/**/*
   needs:
     - sonarqube-backend-sast
     - spotbugs-sast
@@ -108,11 +108,9 @@ deploy-backend:
       export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; \
       export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; \
       setsid /bin/bash -s " < ${CI_PROJECT_DIR}/.gitlab/deployScripts/backend_deploy.sh > output.log
-  only:
-    refs:
-      - master
-    changes:
-      - backend/**/*
+  rules:
+    - changes:
+        - backend/**/*
   artifacts:
     paths:
       - output.log
@@ -131,10 +129,8 @@ telegram-notification-backend:
     NOTIFICATION: $SEND_TELEGRAM_MESSAGE
     ARTIFACT_JOB_NAME: "build-backend"
     APP_NAME: "backend"
-  only:
-    refs:
-      - master
-    changes:
-      - backend/**/*
+  rules:
+    - changes:
+        - backend/**/*
   needs:
     - deploy-backend
