@@ -1,0 +1,35 @@
+[Unit]
+Description=Sausage store backend service
+After=network.target
+
+[Service]
+Type=simple
+User=backend
+Group=backend
+
+Environment=JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/
+
+Environment=PSQL_USER="std-023-61"
+Environment=PSQL_PASSWORD="{{PSQL_PASSWORD}}"
+Environment=PSQL_HOST="rc1b-oi0puwf1qudpx2sh.mdb.yandexcloud.net"
+Environment=PSQL_DBNAME="std-023-61"
+Environment=PSQL_PORT="6432"
+Environment=PSQL_SCHEMA="sausage_store"
+
+Environment=SPRING_DATASOURCE_URL="jdbc:postgresql://${PSQL_HOST}:${PSQL_PORT}/${PSQL_DBNAME}?currentSchema=${PSQL_SCHEMA}&ssl=true"
+Environment=SPRING_DATASOURCE_USERNAME="${PSQL_USER}"
+Environment=SPRING_DATASOURCE_PASSWORD="${PSQL_PASSWORD}"
+
+Environment=MONGO_USER="std-023-61"
+Environment=MONGO_PASSWORD="{{MONGO_PASSWORD}}"
+Environment=MONGO_HOST="rc1a-a3eg9g16sqdlyuo1.mdb.yandexcloud.net"
+Environment=MONGO_DATABASE="std-023-61"
+
+Environment=SPRING_DATA_MONGODB_URI="mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:27018/${MONGO_DATABASE}?tls=true"
+
+Environment=LOG_PATH="/var/sausage-store/logs"
+Environment=REPORT_PATH="/var/sausage-store/reports"
+ExecStart=/bin/bash -c '${JAVA_HOME}/bin/java -jar /opt/sausage-store/bin/sausage-store-%i.jar'
+
+[Install]
+WantedBy=multi-user.target
