@@ -19,6 +19,14 @@ public class ProductService
         return products;
     }
 
+    public async Task<Product> GetProductById(long id)
+    {
+        var product = await _sausageContext.Products.FindAsync(id);
+        if (product == null)
+            throw new ApplicationException("Product not found!");
+        return product;
+    }
+    
     public async Task<Product> SaveProduct(Product product)
     {
         await _sausageContext.Products.AddAsync(product);

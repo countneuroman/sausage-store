@@ -17,7 +17,7 @@ public class SausageContext : DbContext
         builder.Entity<Product>(p =>
         {
             p.HasKey(e => e.Id);
-            p.Property(e => e.Id).HasColumnName("id");
+            p.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
             p.HasIndex(e => e.Id);
             p.Property(e => e.Name).IsRequired().HasColumnName("name");
             p.Property(e => e.Price).HasColumnName("price");
@@ -30,7 +30,7 @@ public class SausageContext : DbContext
         { 
             p.HasKey(e => e.Id);
             p.HasIndex(e => e.Id);
-            p.Property(e => e.Id).HasColumnName("id");
+            p.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
             p.Property(e => e.Status).HasColumnName("status");
             p.Property(e => e.DateCreated).HasColumnName("date_created")
                 .HasDefaultValueSql("current_date");

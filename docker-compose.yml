@@ -3,6 +3,7 @@
     image: sausageapplication
     environment:
       - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_ENVIRONMENT=Development
     build:
       context: .
       dockerfile: backend-dotnet/SausageApplication/Dockerfile

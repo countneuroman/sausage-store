@@ -1,6 +1,7 @@
-﻿@SausageApplication_HostAddress = http://localhost:5114
+﻿@SausageApplication_HostAddress = http://localhost:8080
 
-GET {{SausageApplication_HostAddress}}/weatherforecast/
-Accept: application/json
+GET {{SausageApplication_HostAddress}}/api/products/getallproducts
+###
 
+GET {{SausageApplication_HostAddress}}/api/orders/getallorders
 ###

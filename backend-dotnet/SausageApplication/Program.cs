@@ -3,12 +3,14 @@ using SausageApplication.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddControllers();
+
+builder.Services.AddNpgsql<SausageContext>("Server=postgres;Port=5432;Database=postgres;User Id=postgres;Password=postgres;");
+
 builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<OrderService>();
+
 builder.Services.AddSwaggerGen();
-builder.Services.AddNpgsql<SausageContext>("");
 
 var app = builder.Build();
 
@@ -20,5 +22,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.MapControllers();
 
 app.Run();
