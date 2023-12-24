@@ -28,7 +28,7 @@ public class OrderController : Controller
     {
         var formDtos = form.ProductOrders;
 
-        var order = await _orderService.CreateOrder(formDtos);
-        return Ok(order);
+        await _orderService.CreateOrder(formDtos);
+        return Ok();
     }
 }

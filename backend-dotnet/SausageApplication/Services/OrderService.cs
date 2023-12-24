@@ -22,7 +22,7 @@ public class OrderService
         return products;
     }
 
-    public async Task<Order> CreateOrder(List<OrderProductDto> formDtos)
+    public async Task CreateOrder(List<OrderProductDto> formDtos)
     {
         var order = new Order();
         order.Status = OrderStatus.Paid.ToString();
@@ -34,7 +34,5 @@ public class OrderService
 
         await _sausageContext.Orders.AddAsync(order);
         await _sausageContext.SaveChangesAsync();
-
-        return order;
     }
 }
