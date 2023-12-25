@@ -30,6 +30,7 @@ public class OrderService
         {
             var product = await _productService.GetProductById(orderProductDto.Product.Id);
             order.Products.Add(product);
+            order.OrderProducts.Add(new OrderProduct {Quantity = orderProductDto.Quantity, ProductId = product.Id});
         }
 
         await _sausageContext.Orders.AddAsync(order);
