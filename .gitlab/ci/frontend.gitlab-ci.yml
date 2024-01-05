@@ -1,31 +1,16 @@
 stages:
-  - build
   - test
-  - save
+  - build
   - deploy
   - notify
 include:
   - local: .gitlab/ci/templates/telegram-notification.yml
+  - local: .gitlab/ci/templates/build_image.yml
+  - local: .gitlab/ci/templates/deploy_image_via_compose.yml
 
 variables:
   SEND_TELEGRAM_MESSAGE: "false"
   VERSION: 0.0.${CI_PIPELINE_ID}
-
-build-frontend:
-  stage: build
-  script:
-    - cd frontend
-    - npm install
-    - npm run build
-  artifacts:
-    paths:
-      - frontend/dist/frontend
-  cache:
-    paths:
-      - .npm/
-  rules:  
-    - changes:
-          - frontend/**/*
 
 sonarqube-frontend-sast:
   stage: test
@@ -50,57 +35,37 @@ sonarqube-frontend-sast:
   rules:
     - changes:
         - frontend/**/*
-  artifacts:
-    paths:
-      - frontend/dist/frontend
-  needs:
-    - build-frontend
-
-upload-frontend-artifact:
-  stage: save
-  script:
-    - cd frontend/dist
-    - tar czvf sausage-store-${VERSION}.tar.gz frontend
-    - > 
-     curl -v -u "${NEXUS_REPO_USER}:${NEXUS_REPO_PASS}" 
-     --upload-file sausage-store-${VERSION}.tar.gz ${NEXUS_FRONTEND_REPO_URL}/${VERSION}/sausage-store-${VERSION}.tar.gz
-  only: # Артефакт сохраняем в Nexus только если ветка смержена с master
-    refs:
-      - master
-    changes:
-      - frontend/**/*
+      
+build-frontend-image:
+  stage: build
+  extends:
+    - .build-image
+  variables:
+    CONTEXT: "${CI_PROJECT_DIR}/frontend"
+    DOCKERFILE_PATH: "${CI_PROJECT_DIR}/frontend/Dockerfile"
+    IMAGE_NAME: "sausage-frontend"
+  rules:
+    - changes:
+        - frontend/**/*
   needs:
     - sonarqube-frontend-sast
   
 deploy-frontend:
   stage: deploy
   when: manual # запуск деплоя только вручную, через настройки protected branches можно разрешить запуск только пользователям с определенным уровнем прав
-  before_script:
-    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 600 ~/.ssh
-    - ssh-keyscan ${DEV_HOST} >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-  script:
-    - |
-      ssh ${DEV_USER}@${DEV_HOST} \
-      "export "VERSION=${VERSION}"; \
-      export "NEXUS_FRONTEND_REPO_URL=${NEXUS_FRONTEND_REPO_URL}"; \
-      export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; \
-      export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; \
-      setsid /bin/bash -s " < ${CI_PROJECT_DIR}/.gitlab/deployScripts/frontend_deploy.sh > output.log
-  only:
-    refs:
-      - master
-    changes:
-      - frontend/**/*
+  extends:
+    - .deploy-via_compose
+  variables:
+    COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
+    SERVICE_NAME: "sausage-frontend"
+  rules:
+    - changes:
+        - frontend/**/*
   needs:
-    - upload-frontend-artifact
+    - build-frontend-image
   environment:
     name: frontend/$CI_COMMIT_REF_SLUG
-    url: http://std-023-61.praktikum-services.tech/
+    url: http://std-023-61.praktikum-services.tech
 
 telegram-notification-frontend:
   extends:
@@ -110,10 +75,8 @@ telegram-notification-frontend:
     NOTIFICATION: $SEND_TELEGRAM_MESSAGE
     ARTIFACT_JOB_NAME: "build-frontend"
     APP_NAME: "frontend"
-  only:
-    refs:
-      - master
-    changes:
-      - frontend/**/*
+  rules:
+    - changes:
+        - frontend/**/*
   needs:
     - deploy-frontend
