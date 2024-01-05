@@ -1,35 +1,39 @@
 stages:
-  - build
   - test
+  - build
   - save
   - deploy
   - notify
 include:
   - template: Security/SAST.gitlab-ci.yml
   - local: .gitlab/ci/templates/telegram-notification.yml
+  - local: .gitlab/ci/templates/build_image.yml
+  - local: .gitlab/ci/templates/deploy_image_via_compose.yml
     
+cache:
+  paths:
+    - ${CI_PROJECT_DIR}/.m2/repository
+
 variables:
   SEND_TELEGRAM_MESSAGE: "false"
   VERSION: 0.0.${CI_PIPELINE_ID}
-
+  
+  
 build-backend:
-  stage: build
+  stage: test
   script:
     - cd backend
     - export SPRING_FLYWAY_ENABLED=false
-    - > 
-     mvn package -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository 
-     -Dversion.application=${VERSION}
+    - >
+      mvn package -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository 
+      -Dversion.application=${VERSION}
   artifacts:
     paths:
       - backend/target/sausage-store-${VERSION}.jar
     expire_in: 3 days
-  cache:
-    paths:
-      - .m2/
-  rules:  
+  rules:
     - changes:
-        - backend/**/*   
+        - backend/**/*
 
 spotbugs-sast:
   stage: test
@@ -37,9 +41,6 @@ spotbugs-sast:
     COMPILE: "false"
     SAST_JAVA_VERSION: 11
     MAVEN_REPO_PATH: ${CI_PROJECT_DIR}/.m2/repository
-  cache:
-    paths:
-      - ${CI_PROJECT_DIR}/.m2/repository
   artifacts:
     reports:
       sast: gl-sast-report.json
@@ -73,15 +74,15 @@ sonarqube-backend-sast:
         - backend/**/*
   needs:
     - build-backend
-    
-upload-backend-artifact:
-  stage: save
-  script:
-    - cd backend
-    - >
-      mvn deploy -DskipTests 
-      -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository 
-      -s settings.xml -Dversion.application=${VERSION}
+      
+build-backend-image:
+  stage: build
+  extends:
+    - .build-image
+  variables:
+    CONTEXT: "${CI_PROJECT_DIR}/backend"
+    DOCKERFILE_PATH: "${CI_PROJECT_DIR}/backend/Dockerfile"
+    IMAGE_NAME: "sausage-backend"
   rules:
     - changes:
         - backend/**/*
@@ -92,34 +93,16 @@ upload-backend-artifact:
 deploy-backend:
   stage: deploy
   when: manual # запуск деплоя только вручную, через настройки protected branches можно разрешить запуск только пользователям с определенным уровнем прав
-  before_script:
-    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 600 ~/.ssh
-    - ssh-keyscan ${DEV_HOST} >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-  script:
-    - scp $CI_PROJECT_DIR/backend/sausage-backend@.service ${DEV_USER}@${DEV_HOST}:/home/${DEV_USER}/sausage-backend@.service
-    - |
-      ssh ${DEV_USER}@${DEV_HOST} \
-      "export "VERSION=${VERSION}"; \
-      export "NEXUS_BACKEND_REPO_URL=${NEXUS_BACKEND_REPO_URL}"; \
-      export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; \
-      export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; \
-      export "MONGO_PASSWORD=${MONGO_PASSWORD}"; \
-      export "PSQL_PASSWORD=${PSQL_PASSWORD}"; \
-      setsid /bin/bash -s " < ${CI_PROJECT_DIR}/.gitlab/deployScripts/backend_deploy.sh > output.log
+  extends:
+    - .deploy-via_compose
+  variables:
+    COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
+    SERVICE_NAME: "sausage-backend"
   rules:
     - changes:
         - backend/**/*
-  artifacts:
-    paths:
-      - output.log
-    expire_in: 3 days
   needs:
-    - upload-backend-artifact
+    - build-backend-image
   environment:
     name: backend/$CI_COMMIT_REF_SLUG
     url: http://std-023-61.praktikum-services.tech/
