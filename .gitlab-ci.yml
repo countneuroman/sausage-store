@@ -31,3 +31,12 @@ frontend:
       - frontend/**/*
   trigger:
     include: '.gitlab/ci/frontend.gitlab-ci.yml'
+    
+minio:
+  stage: module-pipelines
+  only:
+    refs:
+      - merge_requests
+      - master
+  trigger:
+    include: '.gitlab/ci/minio.gitlab-ci.yml'
