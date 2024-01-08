@@ -1,0 +1,17 @@
+stages:
+  - deploy
+
+include:
+  - local: .gitlab/ci/templates/deploy_image_via_compose.yml
+    
+deploy-minio:
+  stage: deploy
+  when: manual # запуск деплоя только вручную, через настройки protected branches можно разрешить запуск только пользователям с определенным уровнем прав
+  extends:
+    - .deploy-via_compose
+  rules:
+    - changes:
+        - minio/**/*
+  variables:
+    COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
+    SERVICE_NAME: "minio"

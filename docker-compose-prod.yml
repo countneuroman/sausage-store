@@ -24,6 +24,19 @@ services:
       - sausage_network
     ports:
       - 8080:80
+      
+  minio:
+    image: bitnami/minio:2023.12.23
+    restart: always
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      - MINIO_DEFAULT_BUCKETS=yandex-s3-static-sync
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_files:/bitnami/minio/data
         
 networks:
   sausage_network:
@@ -43,3 +56,10 @@ volumes:
       type: none
       o: bind
       device: ${REPORT_PATH}
+      
+  minio_files:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/data
