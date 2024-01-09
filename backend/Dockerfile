@@ -14,7 +14,7 @@ RUN keytool -importcert -file YandexInternalRootCA.crt \
     -alias yandex -cacerts -storepass changeit -noprompt \
     && rm -rf YandexInternalRootCA.crt \
     && addgroup --system jaruser \
-    && adduser -S -s /bin/false -G jaruser jaruser -D
+    && adduser -u 1004 -s /bin/false -G jaruser jaruser -D
 RUN mkdir -p /var/sausage-store/logs && mkdir -p /var/sausage-store/reports \
     && chown jaruser:jaruser /var/sausage-store/logs && chown jaruser:jaruser /var/sausage-store/reports
 COPY --chown=jaruser:jaruser \
