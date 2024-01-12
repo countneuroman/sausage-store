@@ -16,6 +16,8 @@
     - ssh -nNT -L /tmp/socket.remote:/var/run/docker.sock $DEV_USER@$DEV_HOST & export TUNNEL_PID=$!
     - export DOCKER_HOST=unix:///tmp/socket.remote
   script:
+    - echo $CI_JOB_JWT
+    - echo $SPRING_POSTGRES_DATASOURCE_PASSWORD
     - docker login -u ${CI_REGISTRY_USER} -p${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
     - docker-compose -f ${COMPOSE_PATH} pull ${SERVICE_NAME}
     - docker-compose -f ${COMPOSE_PATH} up -d ${SERVICE_NAME}
