@@ -98,9 +98,6 @@ deploy-backend:
   variables:
     COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
     SERVICE_NAME: "sausage-backend"
-  id_tokens:
-    VAULT_ID_TOKEN:
-      aud: https://gitlab.praktikum-services.ru
   secrets:
     PSQL_PASSWORD:
       vault: sausage-store/psql_password@secret
