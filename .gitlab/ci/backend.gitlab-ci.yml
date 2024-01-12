@@ -99,7 +99,7 @@ deploy-backend:
     COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
     SERVICE_NAME: "sausage-backend"
   secrets:
-    PSQL_PASSWORD:
+    SPRING_POSTGRES_DATASOURCE_PASSWORD:
       vault: sausage-store/psql_password@secret
       file: false
   rules:
