@@ -103,6 +103,14 @@ deploy-backend:
         - backend/**/*
   needs:
     - build-backend-image
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://gitlab.praktikum-services.ru
+  secrets:
+    PSQL_PASSWORD:
+      vault: sausage-store/psql_password@secret
+      file: false
+      token: $VAULT_ID_TOKEN
   environment:
     name: backend/$CI_COMMIT_REF_SLUG
     url: http://std-023-61.praktikum-services.tech/
