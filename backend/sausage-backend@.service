@@ -1,7 +1,7 @@
 [Unit]
 Description=Sausage store backend service
 After=network.target
-
+# изменение для деплоя
 [Service]
 Type=simple
 User=backend
