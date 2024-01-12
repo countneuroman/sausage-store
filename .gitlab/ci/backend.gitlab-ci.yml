@@ -90,23 +90,35 @@ build-backend-image:
     - sonarqube-backend-sast
     - spotbugs-sast
 
-deploy-backend:
+get-secrets-from-vault:
   stage: deploy
   when: manual # запуск деплоя только вручную, через настройки protected branches можно разрешить запуск только пользователям с определенным уровнем прав
-  extends:
-    - .deploy-via_compose
-  variables:
-    COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
-    SERVICE_NAME: "sausage-backend"
-  secrets:
-    SPRING_POSTGRES_DATASOURCE_PASSWORD:
-      vault: sausage-store/psql_password@secret
-      file: false
+  image: vault:1.11.11
+  script:
+    - export VAULT_ADDR=${VAULT_SERVER_UR}
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=sausage-store jwt=$CI_JOB_JWT)"
+    - echo "SPRING_POSTGRES_DATASOURCE_PASSWORD=$(vault kv get -field=spring.datasource.password secret/sausage-store)" >> deploy.env
   rules:
     - changes:
         - backend/**/*
   needs:
     - build-backend-image
+  artifacts:
+    reports:
+      dotenv: secrets.env
+
+deploy-backend:
+  stage: deploy
+  extends:
+    - .deploy-via_compose
+  variables:
+    COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
+    SERVICE_NAME: "sausage-backend"
+  rules:
+    - changes:
+        - backend/**/*
+  needs:
+    - get-secrets-from-vault
   environment:
     name: backend/$CI_COMMIT_REF_SLUG
     url: http://std-023-61.praktikum-services.tech/
