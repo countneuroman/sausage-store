@@ -102,7 +102,6 @@ deploy-backend:
     PSQL_PASSWORD:
       vault: sausage-store/psql_password@secret
       file: false
-      token: $VAULT_ID_TOKEN
   rules:
     - changes:
         - backend/**/*
