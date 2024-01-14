@@ -97,7 +97,10 @@ get-secrets-from-vault:
   script:
     - export VAULT_ADDR=${VAULT_SERVER_URL}
     - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=sausage-store jwt=$CI_JOB_JWT)"
-    - echo "SPRING_POSTGRES_DATASOURCE_PASSWORD=$(vault kv get -field=psql_password secret/sausage-store)" >> secrets.env
+    - echo "POSTGRES_DATASOURCE_PASSWORD=$(vault kv get -field=psql_password secret/sausage-store)" >> secrets.env
+    - echo "POSTGRES_DATASOURCE_URL=$(vault kv get -field=psql_url secret/sausage-store)" >> secrets.env
+    - echo "POSTGRES_DATASOURCE_USERNAME=$(vault kv get -field=psql_username secret/sausage-store)" >> secrets.env
+    - echo "MONGO_URl=$(vault kv get -field=mongodb_uri secret/sausage-store)" >> secrets.env
   rules:
     - changes:
         - backend/**/*
