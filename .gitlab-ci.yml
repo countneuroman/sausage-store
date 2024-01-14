@@ -38,5 +38,7 @@ minio:
     refs:
       - merge_requests
       - master
+    changes:
+      - minio/**/*
   trigger:
     include: '.gitlab/ci/minio.gitlab-ci.yml'
