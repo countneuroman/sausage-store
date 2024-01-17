@@ -19,6 +19,19 @@ backend:
   trigger:
     include: '/.gitlab/ci/backend.gitlab-ci.yml'
     
+backend-report:
+  stage: module-pipelines
+  variables:
+    SEND_TELEGRAM_MESSAGE: ${SEND_TELEGRAM_MESSAGE}
+  only:
+    refs:
+      - merge_requests
+      - master
+    changes:
+      - backend-report/**/*
+  trigger:
+    include: '/.gitlab/ci/backend-report.gitlab-ci.yml'
+    
 frontend:
   stage: module-pipelines
   variables:
@@ -38,5 +51,7 @@ minio:
     refs:
       - merge_requests
       - master
+    changes:
+      - minio/**/*
   trigger:
     include: '.gitlab/ci/minio.gitlab-ci.yml'
