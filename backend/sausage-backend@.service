@@ -2,6 +2,7 @@
 Description=Sausage store backend service
 After=network.target
 
+# deploy
 [Service]
 Type=simple
 User=backend

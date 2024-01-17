@@ -1,10 +1,8 @@
 ﻿.telegram-notification:
   variables:
     NOTIFICATION: "false"
-    ARTIFACT_JOB_NAME: ""
     APP_NAME: ""
-    ARTIFACT_URL: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_SHA/download?job=${ARTIFACT_JOB_NAME}"
-    BODY_DATA: "{\"chat_id\": \"${CHAT_ID}\", \"text\": \"App ${APP_NAME} was built successfully by ${GITLAB_USER_NAME}. Artifact path ${ARTIFACT_URL}\", \"disable_notification\": true}"
+    BODY_DATA: "{\"chat_id\": \"${CHAT_ID}\", \"text\": \"App ${APP_NAME} was built successfully by ${GITLAB_USER_NAME}\", \"disable_notification\": true}"
   script:
     - 'echo $BODY_DATA'
     - |

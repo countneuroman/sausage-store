@@ -18,22 +18,6 @@ variables:
   SEND_TELEGRAM_MESSAGE: "false"
   VERSION: 0.0.${CI_PIPELINE_ID}
   
-  
-build-backend:
-  stage: test
-  script:
-    - cd backend
-    - export SPRING_FLYWAY_ENABLED=false
-    - >
-      mvn package -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository 
-      -Dversion.application=${VERSION}
-  artifacts:
-    paths:
-      - backend/target/sausage-store-${VERSION}.jar
-    expire_in: 3 days
-  rules:
-    - changes:
-        - backend/**/*
 
 spotbugs-sast:
   stage: test
@@ -47,8 +31,6 @@ spotbugs-sast:
   rules:  
     - changes:
         - backend/**/*
-  needs:
-    - build-backend
 
 sonarqube-backend-sast:
   stage: test
@@ -72,8 +54,6 @@ sonarqube-backend-sast:
   rules:  
     - changes:
         - backend/**/*
-  needs:
-    - build-backend
       
 build-backend-image:
   stage: build
@@ -113,7 +93,6 @@ telegram-notification-backend:
   stage: notify
   variables:
     NOTIFICATION: $SEND_TELEGRAM_MESSAGE
-    ARTIFACT_JOB_NAME: "build-backend"
     APP_NAME: "backend"
   rules:
     - changes:

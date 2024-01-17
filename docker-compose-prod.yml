@@ -17,6 +17,14 @@ services:
       - LOG_PATH=${LOG_PATH}
       - REPORT_PATH=${REPORT_PATH}
   
+  sausage-backend-report:
+    image: ${CI_REGISTRY_IMAGE}/sausage-backend-report:latest
+    restart: always
+    networks:
+      - sausage_network
+    environment:
+      - DB=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DATABASE}?tls=true&tlsCaFile=YandexInternalRootCA.crt
+  
   sausage-frontend:
     image: ${CI_REGISTRY_IMAGE}/sausage-frontend:latest
     restart: always

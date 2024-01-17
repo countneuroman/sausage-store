@@ -1,9 +1,11 @@
 stages:
   - test
   - build
+  - save
   - deploy
   - notify
 include:
+  - remote: 'https://gitlab.com/gitlab-org/gitlab/-/raw/2851f4d5/lib/gitlab/ci/templates/Jobs/SAST.latest.gitlab-ci.yml'
   - local: .gitlab/ci/templates/telegram-notification.yml
   - local: .gitlab/ci/templates/build_image.yml
   - local: .gitlab/ci/templates/deploy_image_via_compose.yml
@@ -11,12 +13,18 @@ include:
 variables:
   SEND_TELEGRAM_MESSAGE: "false"
   VERSION: 0.0.${CI_PIPELINE_ID}
-
-sonarqube-frontend-sast:
+  
+semgrep-sast:
+  stage: test
+  rules:
+    - changes:
+        - backend-report/**/*
+          
+sonarqube-backend-report-sast:
   stage: test
   image:
     name: sonarsource/sonar-scanner-cli:latest
-    entrypoint: [ "" ]
+    entrypoint: [""]
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
     GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
@@ -26,56 +34,57 @@ sonarqube-frontend-sast:
       - .sonar/cache
   script:
     - |
-      cd frontend
+      cd backend-report
       sonar-scanner \
-        -Dsonar.projectKey=${SONAR_PROJECTKEY_FRONT} \
-        -Dsonar.sources=. \
-        -Dsonar.host.url=${SONARQUBE_URL} \
-        -Dsonar.login=${SONAR_LOGIN_FRONT}
+          -Dsonar.projectKey=${SONAR_PROJECTKEY_BACK_REPORT} \
+          -Dsonar.sources=. \
+          -Dsonar.host.url=${SONARQUBE_URL} \
+          -Dsonar.login=${SONAR_LOGIN_BACK_REPORT}
   rules:
     - changes:
-        - frontend/**/*
+        - backend-report/**/*
       
-build-frontend-image:
+build-backend-report-image:
   stage: build
   extends:
     - .build-image
   variables:
-    CONTEXT: "${CI_PROJECT_DIR}/frontend"
-    DOCKERFILE_PATH: "${CI_PROJECT_DIR}/frontend/Dockerfile"
-    IMAGE_NAME: "sausage-frontend"
+    CONTEXT: "${CI_PROJECT_DIR}/backend-report"
+    DOCKERFILE_PATH: "${CI_PROJECT_DIR}/backend-report/Dockerfile"
+    IMAGE_NAME: "sausage-backend-report"
   rules:
     - changes:
-        - frontend/**/*
+        - backend-report/**/*
   needs:
-    - sonarqube-frontend-sast
-  
-deploy-frontend:
+    - semgrep-sast
+    - sonarqube-backend-report-sast
+
+deploy-backend-report:
   stage: deploy
   when: manual # запуск деплоя только вручную, через настройки protected branches можно разрешить запуск только пользователям с определенным уровнем прав
   extends:
     - .deploy-via_compose
   variables:
     COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
-    SERVICE_NAME: "sausage-frontend"
+    SERVICE_NAME: "sausage-backend-report"
   rules:
     - changes:
-        - frontend/**/*
+        - backend-report/**/*
   needs:
-    - build-frontend-image
+    - build-backend-report-image
   environment:
-    name: frontend/$CI_COMMIT_REF_SLUG
-    url: http://std-023-61.praktikum-services.tech
+    name: backend-report/$CI_COMMIT_REF_SLUG
+    url: http://std-023-61.praktikum-services.tech/
 
-telegram-notification-frontend:
+telegram-notification-backend:
   extends:
     - .telegram-notification
   stage: notify
   variables:
     NOTIFICATION: $SEND_TELEGRAM_MESSAGE
-    APP_NAME: "frontend"
+    APP_NAME: "backend-report"
   rules:
     - changes:
-        - frontend/**/*
+        - backend-report/**/*
   needs:
-    - deploy-frontend
+    - deploy-backend-report
