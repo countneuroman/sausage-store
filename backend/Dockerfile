@@ -8,6 +8,7 @@ RUN wget -O  YandexInternalRootCA.crt https://storage.yandexcloud.net/cloud-cert
 
 FROM bellsoft/liberica-runtime-container:jre-17-slim-musl AS run
 ARG VERSION=${VERSION}
+USER root
 WORKDIR /app
 COPY --from=builder /usr/src/app/YandexInternalRootCA.crt .
 RUN keytool -importcert -file YandexInternalRootCA.crt \
@@ -24,3 +25,4 @@ COPY --chown=jaruser:jaruser \
 EXPOSE 8080
 USER jaruser
 ENTRYPOINT ["java", "-jar", "-Dmyserver.bindPort=8080", "/app/sausage-store.jar"]
+HEALTHCHECK CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
