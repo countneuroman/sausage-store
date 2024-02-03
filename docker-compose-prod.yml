@@ -1,8 +1,29 @@
 ﻿version: '3.4'
 
 services:
-  sausage-backend:
+  sausage-backend-blue:
     image: ${CI_REGISTRY_IMAGE}/sausage-backend:latest
+    container_name: sausage-backend-blue
+    restart: always
+    deploy:
+      replicas: 2
+    networks:
+      - sausage_network
+    volumes:
+      - backend_logs:${LOG_PATH}
+      - backend_reports:${REPORT_PATH}
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_POSTGRES_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_POSTGRES_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_POSTGRES_DATASOURCE_PASSWORD}
+      - SPRING_DATA_MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DATABASE}?tls=true
+      - LOG_PATH=${LOG_PATH}
+      - REPORT_PATH=${REPORT_PATH}
+      - VIRTUAL_HOST=backend
+        
+  sausage-backend-green:
+    image: ${CI_REGISTRY_IMAGE}/sausage-backend:latest
+    container_name: sausage-backend-green
     restart: always
     deploy:
       replicas: 2
@@ -33,6 +54,8 @@ services:
     restart: always
     networks:
       - sausage_network
+    environment:
+      - DEFAULT_HOST=backend
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     ports:
