@@ -1,0 +1,45 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sausage-backend
+  labels:
+    app: sausage-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sausage-backend
+  template:
+    metadata:
+      labels:
+        app: sausage-backend
+    spec:
+      containers:
+        - name: sausage-backend
+          image: gitlab.praktikum-services.ru:5050/std-023-61/sausage-store/sausage-backend:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          envFrom:
+            - configMapRef:
+                name: sausage-backend-conf
+            - secretRef:
+                name: sausage-backend-secrets
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 1
+            failureThreshold: 6
+      imagePullSecrets:
+        - name: gitlab-registry-access-secret
