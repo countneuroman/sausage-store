@@ -1,0 +1,44 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sausage-frontend
+  labels:
+    app: sausage-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sausage-frontend
+  template:
+    metadata:
+      labels:
+        app: sausage-frontend
+    spec:
+      volumes:
+        - name: nginx-config-volume
+          configMap:
+            name: sausage-frontend-conf
+      containers:
+        - name: sausage-frontend
+          image: gitlab.praktikum-services.ru:5050/std-023-61/sausage-store/sausage-frontend:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          envFrom:
+            - configMapRef:
+                name: sausage-frontend-conf
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d
+          ports:
+            - name: http
+              containerPort: 80
+            - name: https
+              containerPort: 443
+      imagePullSecrets:
+        - name: gitlab-registry-access-secret

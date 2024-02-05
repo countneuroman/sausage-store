@@ -4,6 +4,8 @@ COPY . .
 RUN npm isntall && npm run build
 
 
-FROM nginxproxy/nginx-proxy:1.4-alpine AS run
-COPY --from=builder /usr/src/app/dist/frontend /usr/share/nginx/html/
-COPY --from=builder /usr/src/app/nginx.tmpl /app/
+FROM nginx:stable-alpine3.17-slim AS run
+WORKDIR /var/www/html
+COPY --from=builder /usr/src/app/dist/frontend .
+EXPOSE 80 443
+CMD ["nginx", "-g", "daemon off;"]
