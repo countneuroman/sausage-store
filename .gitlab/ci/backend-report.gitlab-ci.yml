@@ -8,7 +8,7 @@ include:
   - remote: 'https://gitlab.com/gitlab-org/gitlab/-/raw/2851f4d5/lib/gitlab/ci/templates/Jobs/SAST.latest.gitlab-ci.yml'
   - local: .gitlab/ci/templates/telegram-notification.yml
   - local: .gitlab/ci/templates/build_image.yml
-  - local: .gitlab/ci/templates/deploy_image_via_compose.yml
+  - local: .gitlab/ci/templates/deploy_to_kubernetes.yml
 
 variables:
   SEND_TELEGRAM_MESSAGE: "false"
@@ -43,7 +43,7 @@ sonarqube-backend-report-sast:
   rules:
     - changes:
         - backend-report/**/*
-      
+          
 build-backend-report-image:
   stage: build
   extends:
@@ -63,10 +63,11 @@ deploy-backend-report:
   stage: deploy
   when: manual # запуск деплоя только вручную, через настройки protected branches можно разрешить запуск только пользователям с определенным уровнем прав
   extends:
-    - .deploy-via_compose
+    - .deploy-to-kubernetes
   variables:
-    COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
-    SERVICE_NAME: "sausage-backend-report"
+    GIT_SUBMODULE_STRATEGY: recursive
+    KUSTOMIZATION_PATH: "${CI_PROJECT_DIR}/.gitlab/infrastructure/sausage-store/kubernetes/backend-report/configuration"
+    DEPLOYMENT_NAME: "sausage-report"
   rules:
     - changes:
         - backend-report/**/*
@@ -74,7 +75,7 @@ deploy-backend-report:
     - build-backend-report-image
   environment:
     name: backend-report/$CI_COMMIT_REF_SLUG
-    url: http://std-023-61.praktikum-services.tech/
+    url: https://std-023-61.k8s.praktikum-services.tech/
 
 telegram-notification-backend:
   extends:

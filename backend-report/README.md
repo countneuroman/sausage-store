@@ -2,7 +2,7 @@
 
 ## Installation
 
-1. Install `Golang`
+1. Install `Golang`  
 2. Set environment variables `PORT` and `DB`
 3. Run `go run main.go`
 

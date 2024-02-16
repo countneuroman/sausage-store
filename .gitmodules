@@ -1,0 +1,4 @@
+[submodule "infrastructure"]
+	path = .gitlab/infrastructure
+	url = https://gitlab.praktikum-services.ru/std-023-61/infrastructure.git
+	branch = main

@@ -1,8 +1,0 @@
-﻿apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: sausage-backend-conf
-data:
-  SPRING_DATASOURCE_URL: "jdbc:postgresql://rc1b-oi0puwf1qudpx2sh.mdb.yandexcloud.net:6432/std-023-61?currentSchema=sausage_store&ssl=true"
-  SPRING_DATASOURCE_USERNAME: "std-023-61"
-  

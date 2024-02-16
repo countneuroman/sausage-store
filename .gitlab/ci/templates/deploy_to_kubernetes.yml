@@ -1,0 +1,13 @@
+﻿.deploy-to-kubernetes:
+  stage: deploy
+  image:
+    name: bitnami/kubectl:1.29.1
+    entrypoint: [ "" ]
+  variables:
+    KUSTOMIZATION_PATH: ""
+    DEPLOYMENT_NAME: ""
+  before_script:
+    - echo "$K8S_CLOUD_CONFIGURATION" | base64 --decode > ~/.kube/config
+  script:
+    - kubectl apply -k $KUSTOMIZATION_PATH
+    - kubectl rollout restart deployment $DEPLOYMENT_NAME
