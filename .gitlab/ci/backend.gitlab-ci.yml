@@ -70,31 +70,15 @@ build-backend-image:
     - sonarqube-backend-sast
     - spotbugs-sast
 
-deploy-backend-blue-green:
+deploy-backend:
   stage: deploy
   when: manual # запуск деплоя только вручную, через настройки protected branches можно разрешить запуск только пользователям с определенным уровнем прав
+  extends:
+    - .deploy-to-kubernetes
   variables:
-    MAX_ATTEMPTS: 15
-    COMPOSE_PATH: "${CI_PROJECT_DIR}/docker-compose-prod.yml"
-    SERVICE_NAME: "sausage-backend"
-  before_script:
-    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
-    - 'command -v docker-compose >/dev/null || ( apt-get update -y && apt-get install docker-compose -y )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 600 ~/.ssh
-    - ssh-keyscan ${DEV_HOST} >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-    # https://github.com/docker/compose/issues/6428
-    - ssh -nNT -L /tmp/socket.remote:/var/run/docker.sock $DEV_USER@$DEV_HOST & export TUNNEL_PID=$!
-    - export DOCKER_HOST=unix:///tmp/socket.remote
-  script:
-    - chmod +x ${CI_PROJECT_DIR}/.gitlab/deployScripts/backend_blue_green_deploy.sh
-    - ${CI_PROJECT_DIR}/.gitlab/deployScripts/backend_blue_green_deploy.sh
-  after_script:
-    - kill $TUNNEL_PID
-    - rm -f /tmp/socket.remote
+    GIT_SUBMODULE_STRATEGY: recursive
+    KUSTOMIZATION_PATH: "${CI_PROJECT_DIR}/.gitlab/infrastructure/sausage-store/kubernetes/backend/configuration"
+    DEPLOYMENT_NAME: "sausage-backend"
   rules:
     - changes:
         - backend/**/*
@@ -102,7 +86,7 @@ deploy-backend-blue-green:
     - build-backend-image
   environment:
     name: backend/$CI_COMMIT_REF_SLUG
-    url: http://std-023-61.praktikum-services.tech/
+    url: https://std-023-61.k8s.praktikum-services.tech/
 
 telegram-notification-backend:
   extends:
@@ -115,4 +99,4 @@ telegram-notification-backend:
     - changes:
         - backend/**/*
   needs:
-    - deploy-backend-blue-green
+    - deploy-backend
