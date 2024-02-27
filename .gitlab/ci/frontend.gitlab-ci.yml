@@ -6,7 +6,7 @@ stages:
 include:
   - local: .gitlab/ci/templates/telegram-notification.yml
   - local: .gitlab/ci/templates/build_image.yml
-  - local: .gitlab/ci/templates/deploy_image_via_compose.yml
+  - local: .gitlab/ci/templates/deploy_to_kubernetes.yml
 
 variables:
   SEND_TELEGRAM_MESSAGE: "false"
