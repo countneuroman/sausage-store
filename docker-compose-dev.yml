@@ -1,0 +1,63 @@
+﻿version: '3.4'
+
+services:
+  sausage-backend:
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/std-023-61?currentSchema=sausage_store&ssl=false
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_DATA_MONGODB_URI=mongodb://std-023-61:Testusr1234@rc1a-a3eg9g16sqdlyuo1.mdb.yandexcloud.net:27018/std-023-61?tls=true
+      - LOG_PATH=/var/sausage-store/logs
+      - REPORT_PATH=/var/sausage-store/reports
+      - VIRTUAL_HOST=test1
+    image: sausage-backend
+    networks:
+      - sausage_network
+    build:
+      context: backend
+      dockerfile: Dockerfile
+      args:
+        - VERSION=0.0.1
+    deploy:
+      replicas: 2
+#    ports:
+#      - 8085-8100:8080
+    depends_on:
+      - postgres  
+  
+  sausage-frontend:
+    image: sausage-frontend
+    networks:
+      - sausage_network
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    environment:
+      - DEFAULT_HOST=test1
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    ports:
+      - 8081:80   
+        
+  minio:
+    image: bitnami/minio:2023.12.23
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      - MINIO_ROOT_USER=minio-root-user
+      - MINIO_ROOT_PASSWORD=minio-root-password
+      
+      
+  postgres:
+    image: postgres:latest
+    networks:
+      - sausage_network
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - 6432:5432
+        
+networks:
+  sausage_network:
+    driver: bridge
